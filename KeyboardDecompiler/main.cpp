@@ -18,12 +18,10 @@ static string_view indent = "    ";
 
 void WriteKeyNamesTable(const VSC_LPWSTR table[], string_view name, ostream& stream) {
     stream << "static " << STRINGIFY(VSC_LPWSTR) << " " << name << "[] = {" << "\n";
-    for (auto iterator = table; ; ++iterator) {
-        stream << indent << "{ " << HexLiteral(iterator->vsc) << ", " << WStrLiteral(iterator->pwsz) << " }";
-        if (iterator->vsc > 0) stream << ",";
-        stream << "\n";
-        if (iterator->vsc == 0) break;
+    for (auto iterator = table; iterator->vsc != 0; ++iterator) {
+        stream << indent << "{ " << HexLiteral(iterator->vsc) << ", " << WStrLiteral(iterator->pwsz) << " }" << "\n";
     }
+    stream << indent << "{ 0, 0 }" << "\n";
     stream << "};\n\n";
 }
 
@@ -39,30 +37,28 @@ void WriteScanCodesToVirtualKeyArray(std::span<const USHORT> values, string_view
 
 void WriteScanCodesToVirtualKeyTable(const VSC_VK table[], string_view name, ostream& stream) {
     stream << "static " << STRINGIFY(VSC_VK) << " " << name << "[] = {" << "\n";
-    for (auto iterator = table; ; ++iterator) {
-        stream << indent << "{ " << HexLiteral(iterator->Vsc) << ", " << VirtualKeyLiteral(iterator->Vk) << " }";
-        if (iterator->Vsc != 0) stream << ",";
-        stream << "\n";
-        if (iterator->Vsc == 0) break;
+    for (auto iterator = table; iterator->Vsc != 0; ++iterator) {
+        stream << indent << "{ " << HexLiteral(iterator->Vsc) << ", " << VirtualKeyLiteral(iterator->Vk) << " }" << "\n";
     }
+    stream << indent << "{ 0, 0 }" << "\n";
     stream << "};\n\n";
 }
 
 void WriteVirtualKeyToBitTable(const VK_TO_BIT table[], string_view name, ostream& stream) {
     stream << "static " << STRINGIFY(VK_TO_BIT) << " " << name << "[] = {" << "\n";
-    for (auto iterator = table;; ++iterator) {
-        stream << indent << "{ " << VirtualKeyLiteral(iterator->Vk) << ", ";
+    for (auto iterator = table; iterator->Vk != 0; ++iterator) {
+        stream << indent << "{ ";
+        stream << VirtualKeyLiteral(iterator->Vk);
+        stream << ", ";
         switch (iterator->ModBits) {
             case KBDSHIFT: stream << STRINGIFY(KDBSHIFT); break;
             case KBDCTRL: stream << STRINGIFY(KBDCTRL); break;
             case KBDALT: stream << STRINGIFY(KDBALT); break;
             default: stream << HexLiteral(iterator->ModBits); break;
         }
-        stream << " }";
-        if (iterator->Vk != 0) stream << ",";
-        stream << "\n";
-        if (iterator->Vk == 0) break;
+        stream << " }" << "\n";
     }
+    stream << indent << "{ 0, 0 }" << "\n";
     stream << "};\n\n";
 }
 
