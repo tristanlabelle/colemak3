@@ -269,3 +269,37 @@ std::basic_ostream<char>& operator<<(std::basic_ostream<char>& stream, VirtualKe
     }
     return stream;
 }
+
+struct VKToWCharsAttributesLiteral {
+    BYTE value;
+    VKToWCharsAttributesLiteral(BYTE value) : value(value) {}
+};
+
+std::basic_ostream<char>& operator<<(std::basic_ostream<char>& stream, VKToWCharsAttributesLiteral literal) {
+    if (literal.value == 0) {
+        stream << "0";
+        return stream;
+    }
+
+    auto remaining = literal.value;
+    bool first = true;
+    auto handle = [&remaining, &first, &stream]( BYTE flag, const char* name) {
+        if (!(remaining & flag)) return;
+        if (!first) stream << " | ";
+        stream << name;
+        first = false;
+        remaining &= ~flag;
+    };
+
+    handle(CAPLOK, STRINGIFY(CAPLOK));
+    handle(SGCAPS, STRINGIFY(SGCAPS));
+    handle(CAPLOKALTGR, STRINGIFY(CAPLOKALTGR));
+    handle(KANALOK, STRINGIFY(KANALOK));
+    handle(GRPSELTAP, STRINGIFY(GRPSELTAP));
+    if (remaining) {
+        if (!first) stream << " | ";
+        stream << HexLiteral(remaining);
+    }
+
+    return stream;
+}

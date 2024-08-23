@@ -51,24 +51,18 @@ void WriteModifiersStruct(const MODIFIERS& modifiers, string_view name, ostream&
 void WriteVirtualCodeToWideCharTable(const VK_TO_WCHARS1 table[], string_view name, BYTE modifications, BYTE cbSize, ostream& stream) {
     stream << "static " << "VK_TO_WCHARS" << (UINT)modifications << " " << name << "[] = {" << "\n";
     for (auto iterator = table; ; iterator = (const VK_TO_WCHARS1*)((const BYTE*)iterator + cbSize)) {
-        stream << indent << "{ " << VirtualKeyLiteral(iterator->VirtualKey);
+        stream << indent << "{ ";
 
-        // TODO: Decompose attributes according to:
-        //#define CAPLOK      0x01
-        //#define SGCAPS      0x02
-        //#define CAPLOKALTGR 0x04
-        //// KANALOK is for FE
-        //#define KANALOK     0x08
-        //#define GRPSELTAP   0x80
-        stream << ", " << HexLiteral(iterator->Attributes);
-        
+        stream << VirtualKeyLiteral(iterator->VirtualKey);
+        stream << ", " << VKToWCharsAttributesLiteral(iterator->Attributes);
+ 
         stream << ", " << "{ ";
         for (BYTE i = 0; i < modifications; ++i) {
             if (i > 0) stream << ", ";
             stream << WCharLiteral(iterator->wch[i]);
         }
         stream << " }";
-        
+
         stream << " }";
         if (iterator->VirtualKey != 0) stream << ",";
         stream << "\n";
