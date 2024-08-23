@@ -77,6 +77,7 @@ struct WStrLiteral {
 
 std::basic_ostream<char>& operator<<(std::basic_ostream<char>& stream, WStrLiteral literal) {
     if (literal.value) {
+        // TODO: Convert to utf-8 and print
         stream << "L\"";
         for (auto wc : std::wstring_view(literal.value))
             stream << (char)wc;

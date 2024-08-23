@@ -120,6 +120,15 @@ void WriteKeyNamesTable(const VSC_LPWSTR table[], string_view name, ostream& str
     stream << "};\n\n";
 }
 
+void WriteDeadKeyNamesTable(const LPCWSTR table[], string_view name, ostream& stream) {
+    stream << "static " << STRINGIFY(LPCWSTR) << " " << name << "[] = {" << "\n";
+    for (auto iterator = table; *iterator != nullptr; ++iterator) {
+        stream << indent << WStrLiteral(*iterator) << "\n";
+    }
+    stream << indent << "nullptr" << "\n";
+    stream << "};\n\n";
+}
+
 void WriteScanCodesToVirtualKeyArray(std::span<const USHORT> values, string_view name, ostream& stream) {
     stream << "static " << STRINGIFY(USHORT) << " " << name << "[] = {" << "\n";
     for (size_t i = 0; i < values.size(); ++i) {
@@ -146,7 +155,7 @@ void WriteTables(const KBDTABLES& tables, string_view name, ostream& stream) {
 
     if (tables.pKeyNames) WriteKeyNamesTable(tables.pKeyNames, "key_names", stream);
     if (tables.pKeyNamesExt) WriteKeyNamesTable(tables.pKeyNamesExt, "key_names_ext", stream);
-    // TODO: pKeyNamesDead
+    if (tables.pKeyNamesDead) WriteDeadKeyNamesTable(tables.pKeyNamesDead, "key_names_dead", stream);
 
     if (tables.pusVSCtoVK) WriteScanCodesToVirtualKeyArray(std::span<const USHORT>(tables.pusVSCtoVK, tables.bMaxVSCtoVK), "scancode_to_vk", stream);
     if (tables.pVSCtoVK_E0) WriteScanCodesToVirtualKeyTable(tables.pVSCtoVK_E0, "scancode_to_vk_e0", stream);
