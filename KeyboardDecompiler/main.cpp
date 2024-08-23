@@ -49,16 +49,26 @@ void WriteModifiersStruct(const MODIFIERS& modifiers, string_view name, ostream&
 }
 
 void WriteVirtualCodeToWideCharTable(const VK_TO_WCHARS1 table[], string_view name, BYTE modifications, BYTE cbSize, ostream& stream) {
-    stream << "static " << "VK_TO_WCHARS" << modifications << " " << name << "[] = {" << "\n";
+    stream << "static " << "VK_TO_WCHARS" << (UINT)modifications << " " << name << "[] = {" << "\n";
     for (auto iterator = table; ; iterator = (const VK_TO_WCHARS1*)((const BYTE*)iterator + cbSize)) {
         stream << indent << "{ " << VirtualKeyLiteral(iterator->VirtualKey);
+
+        // TODO: Decompose attributes according to:
+        //#define CAPLOK      0x01
+        //#define SGCAPS      0x02
+        //#define CAPLOKALTGR 0x04
+        //// KANALOK is for FE
+        //#define KANALOK     0x08
+        //#define GRPSELTAP   0x80
         stream << ", " << HexLiteral(iterator->Attributes);
+        
         stream << ", " << "{ ";
         for (BYTE i = 0; i < modifications; ++i) {
             if (i > 0) stream << ", ";
-            stream << HexLiteral((USHORT)iterator->wch[i]);
+            stream << WCharLiteral(iterator->wch[i]);
         }
         stream << " }";
+        
         stream << " }";
         if (iterator->VirtualKey != 0) stream << ",";
         stream << "\n";
@@ -87,6 +97,23 @@ void WriteVirtualCodeToWideCharTables(const VK_TO_WCHAR_TABLE table[], string_vi
         stream << "\n";
     }
     stream << indent << "{ nullptr, 0, 0 }\n";
+    stream << "};\n\n";
+}
+
+void WriteDeadKeyTable(const DEADKEY table[], string_view name, ostream& stream) {
+    stream << "static " << STRINGIFY(DEADKEY) << " " << name << "[] = {" << "\n";
+    for (auto iterator = table; iterator->dwBoth; ++iterator) {
+        stream << indent << "DEADTRANS(";
+
+        stream << WCharLiteral(LOWORD(iterator->dwBoth));
+        stream << ", " << WCharLiteral(HIWORD(iterator->dwBoth));
+        stream << ", " << WCharLiteral(iterator->wchComposed);
+        stream << ", " << HexLiteral((USHORT)iterator->uFlags);
+
+        stream << ")";
+        stream << "\n";
+    }
+    stream << indent << "{ 0, 0, 0 }\n";
     stream << "};\n\n";
 }
 
@@ -121,7 +148,7 @@ void WriteScanCodesToVirtualKeyTable(const VSC_VK table[], string_view name, ost
 void WriteTables(const KBDTABLES& tables, string_view name, ostream& stream) {
     if (tables.pCharModifiers) WriteModifiersStruct(*tables.pCharModifiers, "char_modifiers", stream);
     if (tables.pVkToWcharTable) WriteVirtualCodeToWideCharTables(tables.pVkToWcharTable, "vk_to_wchar", stream);
-    // TODO: if (tables.pDeadKey) WriteDeadKeyTable(tables.pDeadKey, "dead_keys", stream);
+    if (tables.pDeadKey) WriteDeadKeyTable(tables.pDeadKey, "dead_keys", stream);
 
     if (tables.pKeyNames) WriteKeyNamesTable(tables.pKeyNames, "key_names", stream);
     if (tables.pKeyNamesExt) WriteKeyNamesTable(tables.pKeyNamesExt, "key_names_ext", stream);
@@ -130,7 +157,6 @@ void WriteTables(const KBDTABLES& tables, string_view name, ostream& stream) {
     if (tables.pusVSCtoVK) WriteScanCodesToVirtualKeyArray(std::span<const USHORT>(tables.pusVSCtoVK, tables.bMaxVSCtoVK), "scancode_to_vk", stream);
     if (tables.pVSCtoVK_E0) WriteScanCodesToVirtualKeyTable(tables.pVSCtoVK_E0, "scancode_to_vk_e0", stream);
     if (tables.pVSCtoVK_E1) WriteScanCodesToVirtualKeyTable(tables.pVSCtoVK_E1, "scancode_to_vk_e1", stream);
-    
 }
 
 void WriteKeyboardSource(const KBDTABLES& tables, ostream& stream) {
@@ -155,6 +181,7 @@ const KBDTABLES& LoadKeyboard(filesystem::path path) {
 }
 
 int main() {
+    SetConsoleCP(CP_UTF8);
     auto& tables = LoadKeyboard(L"C:\\Windows\\System32\\Colemak2.dll");
     WriteKeyboardSource(tables, cout);
 }

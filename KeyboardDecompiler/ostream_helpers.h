@@ -37,6 +37,39 @@ std::basic_ostream<char>& operator<<(std::basic_ostream<char>& stream, HexLitera
     return stream;
 }
 
+struct WCharLiteral {
+    wchar_t value;
+    WCharLiteral(wchar_t value) : value(value) {}
+};
+
+std::basic_ostream<char>& operator<<(std::basic_ostream<char>& stream, WCharLiteral literal) {
+    switch (literal.value) {
+    case 0: stream << "0"; break;
+    case '\t': stream << "L'\\t'"; break;
+    case '\r': stream << "L'\\r'"; break;
+    case '\n': stream << "L'\\n'"; break;
+    case '\'': stream << "L'\\''"; break;
+    case WCH_NONE: stream << STRINGIFY(WCH_NONE); break;
+    case WCH_DEAD: stream << STRINGIFY(WCH_DEAD); break;
+    case WCH_LGTR: stream << STRINGIFY(WCH_LGTR); break;
+    default:
+        char utf8[6] = {};
+        if (literal.value >= 0x20
+            && (literal.value < 0xD800 || literal.value > 0xDFFF) // Surrogate
+            && (literal.value < 0xE000 || literal.value > 0xF8FF) // Private use
+            && WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, &literal.value, 1, &utf8[0], sizeof(utf8), nullptr, nullptr)) {
+            stream << "L'";
+            stream << utf8;
+            stream << "'";
+        }
+        else {
+            stream << HexLiteral((USHORT)literal.value);
+        }
+        break;
+    }
+    return stream;
+}
+
 struct WStrLiteral {
     const wchar_t* value;
     WStrLiteral(const wchar_t* value) : value(value) {}
