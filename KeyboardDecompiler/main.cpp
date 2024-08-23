@@ -16,34 +16,6 @@ using namespace std;
 static const char* dllExportName = "KbdLayerDescriptor";
 static string_view indent = "    ";
 
-void WriteKeyNamesTable(const VSC_LPWSTR table[], string_view name, ostream& stream) {
-    stream << "static " << STRINGIFY(VSC_LPWSTR) << " " << name << "[] = {" << "\n";
-    for (auto iterator = table; iterator->vsc != 0; ++iterator) {
-        stream << indent << "{ " << HexLiteral(iterator->vsc) << ", " << WStrLiteral(iterator->pwsz) << " }" << "\n";
-    }
-    stream << indent << "{ 0, 0 }" << "\n";
-    stream << "};\n\n";
-}
-
-void WriteScanCodesToVirtualKeyArray(std::span<const USHORT> values, string_view name, ostream& stream) {
-    stream << "static " << STRINGIFY(USHORT) << " " << name << "[] = {" << "\n";
-    for (size_t i = 0; i < values.size(); ++i) {
-        stream << indent << "/* " << HexLiteral((BYTE)i) << " */ " << VirtualKeyLiteral(values[i]);
-        if (i + 1 != values.size()) stream << ",";
-        stream << "\n";
-    }
-    stream << "};\n\n";
-}
-
-void WriteScanCodesToVirtualKeyTable(const VSC_VK table[], string_view name, ostream& stream) {
-    stream << "static " << STRINGIFY(VSC_VK) << " " << name << "[] = {" << "\n";
-    for (auto iterator = table; iterator->Vsc != 0; ++iterator) {
-        stream << indent << "{ " << HexLiteral(iterator->Vsc) << ", " << VirtualKeyLiteral(iterator->Vk) << " }" << "\n";
-    }
-    stream << indent << "{ 0, 0 }" << "\n";
-    stream << "};\n\n";
-}
-
 void WriteVirtualKeyToBitTable(const VK_TO_BIT table[], string_view name, ostream& stream) {
     stream << "static " << STRINGIFY(VK_TO_BIT) << " " << name << "[] = {" << "\n";
     for (auto iterator = table; iterator->Vk != 0; ++iterator) {
@@ -51,10 +23,10 @@ void WriteVirtualKeyToBitTable(const VK_TO_BIT table[], string_view name, ostrea
         stream << VirtualKeyLiteral(iterator->Vk);
         stream << ", ";
         switch (iterator->ModBits) {
-            case KBDSHIFT: stream << STRINGIFY(KDBSHIFT); break;
-            case KBDCTRL: stream << STRINGIFY(KBDCTRL); break;
-            case KBDALT: stream << STRINGIFY(KDBALT); break;
-            default: stream << HexLiteral(iterator->ModBits); break;
+        case KBDSHIFT: stream << STRINGIFY(KDBSHIFT); break;
+        case KBDCTRL: stream << STRINGIFY(KBDCTRL); break;
+        case KBDALT: stream << STRINGIFY(KDBALT); break;
+        default: stream << HexLiteral(iterator->ModBits); break;
         }
         stream << " }" << "\n";
     }
@@ -118,16 +90,47 @@ void WriteVirtualCodeToWideCharTables(const VK_TO_WCHAR_TABLE table[], string_vi
     stream << "};\n\n";
 }
 
+void WriteKeyNamesTable(const VSC_LPWSTR table[], string_view name, ostream& stream) {
+    stream << "static " << STRINGIFY(VSC_LPWSTR) << " " << name << "[] = {" << "\n";
+    for (auto iterator = table; iterator->vsc != 0; ++iterator) {
+        stream << indent << "{ " << HexLiteral(iterator->vsc) << ", " << WStrLiteral(iterator->pwsz) << " }" << "\n";
+    }
+    stream << indent << "{ 0, 0 }" << "\n";
+    stream << "};\n\n";
+}
+
+void WriteScanCodesToVirtualKeyArray(std::span<const USHORT> values, string_view name, ostream& stream) {
+    stream << "static " << STRINGIFY(USHORT) << " " << name << "[] = {" << "\n";
+    for (size_t i = 0; i < values.size(); ++i) {
+        stream << indent << "/* " << HexLiteral((BYTE)i) << " */ " << VirtualKeyLiteral(values[i]);
+        if (i + 1 != values.size()) stream << ",";
+        stream << "\n";
+    }
+    stream << "};\n\n";
+}
+
+void WriteScanCodesToVirtualKeyTable(const VSC_VK table[], string_view name, ostream& stream) {
+    stream << "static " << STRINGIFY(VSC_VK) << " " << name << "[] = {" << "\n";
+    for (auto iterator = table; iterator->Vsc != 0; ++iterator) {
+        stream << indent << "{ " << HexLiteral(iterator->Vsc) << ", " << VirtualKeyLiteral(iterator->Vk) << " }" << "\n";
+    }
+    stream << indent << "{ 0, 0 }" << "\n";
+    stream << "};\n\n";
+}
+
 void WriteTables(const KBDTABLES& tables, string_view name, ostream& stream) {
+    if (tables.pCharModifiers) WriteModifiersStruct(*tables.pCharModifiers, "char_modifiers", stream);
+    if (tables.pVkToWcharTable) WriteVirtualCodeToWideCharTables(tables.pVkToWcharTable, "vk_to_wchar", stream);
+    // TODO: if (tables.pDeadKey) WriteDeadKeyTable(tables.pDeadKey, "dead_keys", stream);
+
     if (tables.pKeyNames) WriteKeyNamesTable(tables.pKeyNames, "key_names", stream);
     if (tables.pKeyNamesExt) WriteKeyNamesTable(tables.pKeyNamesExt, "key_names_ext", stream);
     // TODO: pKeyNamesDead
+
     if (tables.pusVSCtoVK) WriteScanCodesToVirtualKeyArray(std::span<const USHORT>(tables.pusVSCtoVK, tables.bMaxVSCtoVK), "scancode_to_vk", stream);
     if (tables.pVSCtoVK_E0) WriteScanCodesToVirtualKeyTable(tables.pVSCtoVK_E0, "scancode_to_vk_e0", stream);
     if (tables.pVSCtoVK_E1) WriteScanCodesToVirtualKeyTable(tables.pVSCtoVK_E1, "scancode_to_vk_e1", stream);
-    if (tables.pCharModifiers) WriteModifiersStruct(*tables.pCharModifiers, "char_modifiers", stream);
-    if (tables.pVkToWcharTable) WriteVirtualCodeToWideCharTables(tables.pVkToWcharTable, "vk_to_wchar", stream);
-    // TODO: pDeadKey
+    
 }
 
 void WriteKeyboardSource(const KBDTABLES& tables, ostream& stream) {
