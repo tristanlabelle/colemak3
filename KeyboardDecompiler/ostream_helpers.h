@@ -77,10 +77,14 @@ struct WStrLiteral {
 
 std::basic_ostream<char>& operator<<(std::basic_ostream<char>& stream, WStrLiteral literal) {
     if (literal.value) {
-        // TODO: Convert to utf-8 and print
+        int wideLength = lstrlenW(literal.value);
+        int byteCount = WideCharToMultiByte(CP_UTF8, 0, literal.value, wideLength, nullptr, 0, nullptr, nullptr);
+        std::string utf8;
+        utf8.resize((size_t)byteCount, 0);
+        WideCharToMultiByte(CP_UTF8, 0, literal.value, wideLength, &utf8[0], byteCount, nullptr, nullptr);
+
         stream << "L\"";
-        for (auto wc : std::wstring_view(literal.value))
-            stream << (char)wc;
+        stream << utf8;
         stream << "\"";
     }
     else {
