@@ -160,6 +160,25 @@ void WriteTables(const KBDTABLES& tables, string_view name, ostream& stream) {
     if (tables.pusVSCtoVK) WriteScanCodesToVirtualKeyArray(std::span<const USHORT>(tables.pusVSCtoVK, tables.bMaxVSCtoVK), "scancode_to_vk", stream);
     if (tables.pVSCtoVK_E0) WriteScanCodesToVirtualKeyTable(tables.pVSCtoVK_E0, "scancode_to_vk_e0", stream);
     if (tables.pVSCtoVK_E1) WriteScanCodesToVirtualKeyTable(tables.pVSCtoVK_E1, "scancode_to_vk_e1", stream);
+
+    stream << "static " << STRINGIFY(KBDTABLES) << " " << name << " = {" << "\n";
+    stream << indent << (tables.pCharModifiers ? "&char_modifiers" : "nullptr") << ",\n";
+    stream << indent << (tables.pVkToWcharTable ? "vk_to_wchar" : "nullptr") << ",\n";
+    stream << indent << (tables.pDeadKey ? "dead_keys" : "nullptr") << ",\n";
+    stream << indent << (tables.pKeyNames ? "key_names" : "nullptr") << ",\n";
+    stream << indent << (tables.pKeyNamesExt ? "key_names_ext" : "nullptr") << ",\n";
+    stream << indent << (tables.pKeyNamesDead ? "key_names_dead" : "nullptr") << ",\n";
+    stream << indent << (tables.pusVSCtoVK ? "scancode_to_vk" : "nullptr") << ",\n";
+    stream << indent << (tables.pusVSCtoVK ? "ARRAYSIZE(scancode_to_vk)" : "nullptr") << ",\n";
+    stream << indent << (tables.pVSCtoVK_E0 ? "scancode_to_vk_e0" : "nullptr") << ",\n";
+    stream << indent << (tables.pVSCtoVK_E1 ? "scancode_to_vk_e1" : "nullptr") << ",\n";
+    stream << indent << HexLiteral(tables.fLocaleFlags) << ",\n";
+    stream << indent << "0" << ",\n"; // nLgMax
+    stream << indent << "0" << ",\n"; // cbLgEntry
+    stream << indent << "nullptr" << ",\n"; // pLigature (not supported)
+    stream << indent << tables.dwType << ",\n";
+    stream << indent << tables.dwSubType << "\n";
+    stream << "};\n\n";
 }
 
 void WriteKeyboardSource(const KBDTABLES& tables, ostream& stream) {
@@ -168,6 +187,9 @@ void WriteKeyboardSource(const KBDTABLES& tables, ostream& stream) {
     stream << "\n";
 
     WriteTables(tables, "kbd_tables", stream);
+
+    stream << "__declspec(dllexport)" << " " << STRINGIFY(PKBDTABLES) << " " << "KbdLayerDescriptor()"
+        << " { return &kbd_tables }" << "\n";
 }
 
 const KBDTABLES& LoadKeyboard(filesystem::path path) {
