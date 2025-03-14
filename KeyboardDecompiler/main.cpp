@@ -23,12 +23,12 @@ void WriteVirtualKeyToBitTable(const VK_TO_BIT table[], string_view name, ostrea
         stream << VirtualKeyLiteral(iterator->Vk);
         stream << ", ";
         switch (iterator->ModBits) {
-        case KBDSHIFT: stream << STRINGIFY(KDBSHIFT); break;
+        case KBDSHIFT: stream << STRINGIFY(KBDSHIFT); break;
         case KBDCTRL: stream << STRINGIFY(KBDCTRL); break;
-        case KBDALT: stream << STRINGIFY(KDBALT); break;
+        case KBDALT: stream << STRINGIFY(KBDALT); break;
         default: stream << HexLiteral(iterator->ModBits); break;
         }
-        stream << " }" << "\n";
+        stream << " }," << "\n";
     }
     stream << indent << "{ 0, 0 }" << "\n";
     stream << "};\n\n";
@@ -87,7 +87,7 @@ void WriteVirtualCodeToWideCharTables(const VK_TO_WCHAR_TABLE table[], string_vi
         stream << "(PVK_TO_WCHARS1)" << tableName;
         stream << ", " << (USHORT)iterator->nModifications;
         stream << ", " << "sizeof(" << tableName << "[0]" << ")";
-        stream << " }";
+        stream << " },";
         stream << "\n";
     }
     stream << indent << "{ nullptr, 0, 0 }\n";
@@ -104,7 +104,7 @@ void WriteDeadKeyTable(const DEADKEY table[], string_view name, ostream& stream)
         stream << ", " << WCharLiteral(iterator->wchComposed);
         stream << ", " << HexLiteral((USHORT)iterator->uFlags);
 
-        stream << ")";
+        stream << "),";
         stream << "\n";
     }
     stream << indent << "{ 0, 0, 0 }\n";
@@ -114,7 +114,8 @@ void WriteDeadKeyTable(const DEADKEY table[], string_view name, ostream& stream)
 void WriteKeyNamesTable(const VSC_LPWSTR table[], string_view name, ostream& stream) {
     stream << "static " << STRINGIFY(VSC_LPWSTR) << " " << name << "[] = {" << "\n";
     for (auto iterator = table; iterator->vsc != 0; ++iterator) {
-        stream << indent << "{ " << HexLiteral(iterator->vsc) << ", " << WStrLiteral(iterator->pwsz) << " }" << "\n";
+        stream << indent << "{ " << HexLiteral(iterator->vsc)
+            << ", " << "(LPWSTR)" << WStrLiteral(iterator->pwsz) << " }," << "\n";
     }
     stream << indent << "{ 0, 0 }" << "\n";
     stream << "};\n\n";
@@ -123,7 +124,7 @@ void WriteKeyNamesTable(const VSC_LPWSTR table[], string_view name, ostream& str
 void WriteDeadKeyNamesTable(const LPCWSTR table[], string_view name, ostream& stream) {
     stream << "static " << STRINGIFY(LPCWSTR) << " " << name << "[] = {" << "\n";
     for (auto iterator = table; *iterator != nullptr; ++iterator) {
-        stream << indent << WStrLiteral(*iterator) << "\n";
+        stream << indent << WStrLiteral(*iterator) << ",\n";
     }
     stream << indent << "nullptr" << "\n";
     stream << "};\n\n";
@@ -142,7 +143,7 @@ void WriteScanCodesToVirtualKeyArray(std::span<const USHORT> values, string_view
 void WriteScanCodesToVirtualKeyTable(const VSC_VK table[], string_view name, ostream& stream) {
     stream << "static " << STRINGIFY(VSC_VK) << " " << name << "[] = {" << "\n";
     for (auto iterator = table; iterator->Vsc != 0; ++iterator) {
-        stream << indent << "{ " << HexLiteral(iterator->Vsc) << ", " << VirtualKeyLiteral(iterator->Vk) << " }" << "\n";
+        stream << indent << "{ " << HexLiteral(iterator->Vsc) << ", " << VirtualKeyLiteral(iterator->Vk) << " }," << "\n";
     }
     stream << indent << "{ 0, 0 }" << "\n";
     stream << "};\n\n";
@@ -167,7 +168,7 @@ void WriteTables(const KBDTABLES& tables, string_view name, ostream& stream) {
     stream << indent << (tables.pDeadKey ? "dead_keys" : "nullptr") << ",\n";
     stream << indent << (tables.pKeyNames ? "key_names" : "nullptr") << ",\n";
     stream << indent << (tables.pKeyNamesExt ? "key_names_ext" : "nullptr") << ",\n";
-    stream << indent << (tables.pKeyNamesDead ? "key_names_dead" : "nullptr") << ",\n";
+    stream << indent << (tables.pKeyNamesDead ? "(WCHAR**)key_names_dead" : "nullptr") << ",\n";
     stream << indent << (tables.pusVSCtoVK ? "scancode_to_vk" : "nullptr") << ",\n";
     stream << indent << (tables.pusVSCtoVK ? "ARRAYSIZE(scancode_to_vk)" : "nullptr") << ",\n";
     stream << indent << (tables.pVSCtoVK_E0 ? "scancode_to_vk_e0" : "nullptr") << ",\n";
@@ -189,7 +190,7 @@ void WriteKeyboardSource(const KBDTABLES& tables, ostream& stream) {
     WriteTables(tables, "kbd_tables", stream);
 
     stream << "__declspec(dllexport)" << " " << STRINGIFY(PKBDTABLES) << " " << "KbdLayerDescriptor()"
-        << " { return &kbd_tables }" << "\n";
+        << " { return &kbd_tables; }" << "\n";
 }
 
 const KBDTABLES& LoadKeyboard(filesystem::path path) {

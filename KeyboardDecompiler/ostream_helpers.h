@@ -49,6 +49,7 @@ std::basic_ostream<char>& operator<<(std::basic_ostream<char>& stream, WCharLite
     case '\r': stream << "L'\\r'"; break;
     case '\n': stream << "L'\\n'"; break;
     case '\'': stream << "L'\\''"; break;
+    case '\\': stream << "L'\\\\'"; break;
     case WCH_NONE: stream << STRINGIFY(WCH_NONE); break;
     case WCH_DEAD: stream << STRINGIFY(WCH_DEAD); break;
     case WCH_LGTR: stream << STRINGIFY(WCH_LGTR); break;
